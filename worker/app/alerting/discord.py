@@ -35,7 +35,7 @@ def _is_on_cooldown(db: Session, fingerprint: str) -> bool:
         .filter(
             Alert.fingerprint == fingerprint,
             Alert.created_at >= cutoff,
-            Alert.sent == True,  # noqa: E712
+            Alert.sent.is_(True),
         )
         .first()
     )

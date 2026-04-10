@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Float, DateTime, Text, Boolean, JSON,
     UniqueConstraint,
 )
 from .db import Base
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 class Item(Base):
@@ -12,13 +16,13 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     source_type = Column(String(32), nullable=False)   # rss | gdelt
     source_name = Column(String(256))
-    url = Column(Text, unique=True, nullable=True)
+    url = Column(Text, nullable=True)
     url_hash = Column(String(64), unique=True, index=True, nullable=False)
     title = Column(Text)
     snippet = Column(Text)
     publisher = Column(String(256))
     published_at = Column(DateTime(timezone=True), nullable=True)
-    fetched_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    fetched_at = Column(DateTime(timezone=True), default=_utcnow)
     categories = Column(JSON, default=list)   # list of matched category names
     risk_score = Column(Float, default=0.0)
 
@@ -31,7 +35,7 @@ class RiskTimeseries(Base):
     __tablename__ = "risk_timeseries"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime(timezone=True), default=_utcnow, index=True)
     risk_index = Column(Float, nullable=False)
     kinetic_hits = Column(Integer, default=0)
     shipping_hits = Column(Integer, default=0)
@@ -46,7 +50,7 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow, index=True)
     alert_type = Column(String(64))   # risk_threshold | delta_spike | kinetic_cluster
     fingerprint = Column(String(128), index=True)
     risk_value = Column(Float)
