@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import and_, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .celery_app import app
@@ -126,9 +127,15 @@ def compute_risk(self):
     try:
         window = timedelta(minutes=settings.risk_window_minutes)
         cutoff = datetime.now(timezone.utc) - window
+        # Prefer published_at for recency; fall back to fetched_at when NULL
         items: list[Item] = (
             db.query(Item)
-            .filter(Item.fetched_at >= cutoff)
+            .filter(
+                or_(
+                    Item.published_at >= cutoff,
+                    and_(Item.published_at.is_(None), Item.fetched_at >= cutoff),
+                )
+            )
             .all()
         )
 
@@ -155,6 +162,8 @@ def compute_risk(self):
                     "title": item.title,
                     "publisher": item.publisher,
                     "url": item.url,
+                    "snippet": item.snippet,
+                    "published_at": item.published_at.isoformat() if item.published_at else None,
                     "categories": cats,
                     "risk_score": item.risk_score,
                     "source_name": item.source_name,

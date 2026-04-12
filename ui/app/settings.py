@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     api_base_url: str = "http://localhost:8000"
+    api_key: str = ""  # must match API_KEY set in the api service
 
     youtube_streams: str = (
         '[{"name":"Al Jazeera English","url":"https://www.youtube.com/@AlJazeeraEnglish/live"},'

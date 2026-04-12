@@ -1,11 +1,18 @@
 from contextlib import asynccontextmanager
-from typing import Optional
-from fastapi import FastAPI, Depends, Query
-from sqlalchemy.orm import Session
+from typing import Literal, Optional
+
+from fastapi import FastAPI, Depends, HTTPException, Query, Security, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from sqlalchemy.orm import Session
 
 from .db import get_db, init_db
+from .settings import get_settings
 from . import crud
 
 
@@ -15,11 +22,36 @@ async def lifespan(app: FastAPI):
     yield
 
 
+settings = get_settings()
+
+# ── Rate limiter ───────────────────────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
+# ── API key auth ───────────────────────────────────────────────────────────────
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(key: Optional[str] = Security(_api_key_header)) -> str:
+    if key != settings.api_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return key
+
+
 app = FastAPI(
     title="GCC Dashboard API",
     description="Risk monitoring dashboard for U.S.–Iran conflict escalation",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501", "http://ui:8501"],
+    allow_methods=["GET"],
+    allow_headers=["X-API-Key"],
 )
 
 
@@ -77,26 +109,39 @@ def health():
 
 
 @app.get("/risk/latest", response_model=Optional[RiskOut])
-def latest_risk(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def latest_risk(
+    request: Request,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_api_key),
+):
     return crud.get_latest_risk(db)
 
 
 @app.get("/risk/series", response_model=list[RiskOut])
+@limiter.limit("60/minute")
 def risk_series(
+    request: Request,
     hours: int = Query(default=6, ge=1, le=168),
     db: Session = Depends(get_db),
+    _: str = Depends(require_api_key),
 ):
     return crud.get_risk_series(db, hours=hours)
 
 
 @app.get("/items", response_model=list[ItemOut])
+@limiter.limit("30/minute")
 def list_items(
+    request: Request,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     source_type: Optional[str] = Query(default=None),
-    category: Optional[str] = Query(default=None),
+    category: Optional[Literal[
+        "kinetic", "shipping", "nuclear", "casualties", "deescalation"
+    ]] = Query(default=None),
     since_minutes: Optional[int] = Query(default=None, ge=1),
     db: Session = Depends(get_db),
+    _: str = Depends(require_api_key),
 ):
     return crud.get_items(
         db,
@@ -109,8 +154,11 @@ def list_items(
 
 
 @app.get("/alerts", response_model=list[AlertOut])
+@limiter.limit("60/minute")
 def list_alerts(
+    request: Request,
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    _: str = Depends(require_api_key),
 ):
     return crud.get_recent_alerts(db, limit=limit)

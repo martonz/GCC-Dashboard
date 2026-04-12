@@ -7,4 +7,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
 
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /code
+USER appuser
+
+ENV PYTHONPATH=/code/app
+
 CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]

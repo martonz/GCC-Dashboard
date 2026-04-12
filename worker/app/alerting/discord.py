@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+
+def _safe_url(url: str | None) -> str | None:
+    """Return url only if it uses http/https; otherwise return None."""
+    if not url:
+        return None
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return None
+
 _WEBHOOK_SESSION = requests.Session()
 _WEBHOOK_SESSION.headers.update({"Content-Type": "application/json"})
 
@@ -66,7 +75,7 @@ def _build_discord_embed(
     for i, d in enumerate(drivers[:3], 1):
         title = d.get("title", "Unknown")[:120]
         source = d.get("publisher", d.get("source_name", ""))
-        url = d.get("url", "")
+        url = _safe_url(d.get("url", ""))
         cats = ", ".join(d.get("categories", []))
         line = f"**{i}.** [{title}]({url})" if url else f"**{i}.** {title}"
         if source:
@@ -141,7 +150,8 @@ def maybe_send_alert(
         resp.raise_for_status()
         sent = True
     except Exception as exc:
-        logger.error("Discord webhook failed: %s", exc)
+        # Log only the exception type to avoid leaking the webhook URL token
+        logger.error("Discord webhook failed: %s", type(exc).__name__)
         sent = False
 
     # Record in DB (even if send failed, to avoid retry spam)

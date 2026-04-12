@@ -19,7 +19,9 @@ app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
-    redbeat_redis_url=settings.celery_broker_url,
+    task_soft_time_limit=120,  # raise SoftTimeLimitExceeded after 2 min
+    task_time_limit=180,       # hard kill after 3 min
+    redbeat_redis_url=settings.celery_broker_url,  # includes password from env
     beat_scheduler="redbeat.RedBeatScheduler",
     beat_schedule={
         "ingest-rss": {

@@ -7,14 +7,12 @@ from functools import lru_cache
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Database
-    database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/wardb"
-    )
+    # Database — required, no default
+    database_url: str
 
-    # Celery
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/1"
+    # Celery — required, no default
+    celery_broker_url: str
+    celery_result_backend: str
 
     # Discord
     discord_webhook_url: str = ""

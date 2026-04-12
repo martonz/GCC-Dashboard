@@ -5,9 +5,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/wardb"
-    )
+    database_url: str  # required — no default; must be set via DATABASE_URL env var
+    api_key: str       # required — clients must send this in X-API-Key header
 
     # Risk thresholds
     risk_window_minutes: int = 60
