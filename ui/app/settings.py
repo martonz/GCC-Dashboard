@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     api_base_url: str = "http://localhost:8000"
+    api_key: str = ""
 
     youtube_streams: str = (
         '[{"name":"Al Jazeera English","url":"https://www.youtube.com/@AlJazeeraEnglish/live"},'
@@ -21,7 +22,10 @@ class Settings(BaseSettings):
     alert_delta_threshold: int = 20
 
     def get_youtube_streams(self) -> list[dict]:
-        return json.loads(self.youtube_streams)
+        try:
+            return json.loads(self.youtube_streams)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"YOUTUBE_STREAMS is not valid JSON: {exc}") from exc
 
 
 @lru_cache

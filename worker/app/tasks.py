@@ -128,7 +128,8 @@ def compute_risk(self):
         cutoff = datetime.now(timezone.utc) - window
         items: list[Item] = (
             db.query(Item)
-            .filter(Item.fetched_at >= cutoff)
+            .filter(Item.published_at.isnot(None))
+            .filter(Item.published_at >= cutoff)
             .all()
         )
 

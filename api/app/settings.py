@@ -9,6 +9,9 @@ class Settings(BaseSettings):
         "postgresql+psycopg://postgres:postgres@localhost:5432/wardb"
     )
 
+    # Auth
+    api_key: str = ""
+
     # Risk thresholds
     risk_window_minutes: int = 60
     alert_risk_threshold: int = 70

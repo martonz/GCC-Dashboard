@@ -35,10 +35,11 @@ class Settings(BaseSettings):
 
     # GDELT
     gdelt_queries: str = (
-        '["Iran US war strike missile Hormuz", '
+        '["Iran United States war strike missile Hormuz", '
         '"Iran nuclear ceasefire diplomacy"]'
     )
     gdelt_max_records: int = 100
+    gdelt_retry_warn_threshold: int = 3
 
     # Scheduling (minutes)
     rss_ingest_interval_minutes: int = 2
@@ -55,13 +56,22 @@ class Settings(BaseSettings):
     )
 
     def get_rss_queries(self) -> list[str]:
-        return json.loads(self.rss_queries)
+        try:
+            return json.loads(self.rss_queries)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"RSS_QUERIES is not valid JSON: {exc}") from exc
 
     def get_gdelt_queries(self) -> list[str]:
-        return json.loads(self.gdelt_queries)
+        try:
+            return json.loads(self.gdelt_queries)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"GDELT_QUERIES is not valid JSON: {exc}") from exc
 
     def get_youtube_streams(self) -> list[dict]:
-        return json.loads(self.youtube_streams)
+        try:
+            return json.loads(self.youtube_streams)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"YOUTUBE_STREAMS is not valid JSON: {exc}") from exc
 
 
 @lru_cache

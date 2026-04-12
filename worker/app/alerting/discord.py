@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -12,6 +13,18 @@ from sqlalchemy.orm import Session
 
 from ..models import Alert
 from ..settings import get_settings
+
+
+def _safe_url(url: str | None) -> str:
+    """Allow only http/https URLs; return '' for anything else (e.g. javascript:, data:)."""
+    if not url:
+        return ""
+    return url if url.startswith(("https://", "http://")) else ""
+
+
+def _escape_md(text: str) -> str:
+    """Escape markdown link-syntax characters in untrusted text."""
+    return re.sub(r"([\[\]()])", r"\\\1", text)
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +77,9 @@ def _build_discord_embed(
 
     driver_lines = []
     for i, d in enumerate(drivers[:3], 1):
-        title = d.get("title", "Unknown")[:120]
-        source = d.get("publisher", d.get("source_name", ""))
-        url = d.get("url", "")
+        title = _escape_md(d.get("title", "Unknown")[:120])
+        source = _escape_md(d.get("publisher", d.get("source_name", "")) or "")
+        url = _safe_url(d.get("url", ""))
         cats = ", ".join(d.get("categories", []))
         line = f"**{i}.** [{title}]({url})" if url else f"**{i}.** {title}"
         if source:
@@ -140,8 +153,10 @@ def maybe_send_alert(
         resp = _WEBHOOK_SESSION.post(webhook_url, json=payload, timeout=10)
         resp.raise_for_status()
         sent = True
-    except Exception as exc:
-        logger.error("Discord webhook failed: %s", exc)
+    except requests.RequestException as exc:
+        status = exc.response.status_code if exc.response is not None else "unknown"
+        details = exc.response.text[:300] if exc.response is not None else ""
+        logger.error("Discord webhook failed (status=%s) response=%s", status, details)
         sent = False
 
     # Record in DB (even if send failed, to avoid retry spam)
