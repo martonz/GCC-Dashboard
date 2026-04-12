@@ -1,6 +1,5 @@
 celery==5.3.6
 redis==5.0.4
-redbeat==2.2.0
 sqlalchemy==2.0.30
 psycopg[binary]==3.1.19
 pydantic-settings==2.2.1
