@@ -27,6 +27,7 @@ GDELT_DOC_BASE = (
     "&format=json"
     "&maxrecords={maxrecords}"
     "&sort=HybridRel"
+    "&timespan=3d"
 )
 
 _SESSION = requests.Session()
@@ -119,7 +120,7 @@ def _parse_gdelt_date(s: str | None) -> datetime | None:
 def fetch_gdelt(query: str, max_records: int = 100) -> Iterator[dict]:
     """Yield raw item dicts from the GDELT 2.1 Doc API."""
     url = GDELT_DOC_BASE.format(
-        query=quote_plus(query),
+        query=quote_plus(f"{query} sourcelang:english"),
         maxrecords=min(max_records, 250),
     )
     retry_reasons: Counter[str] = Counter()
