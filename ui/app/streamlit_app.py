@@ -294,6 +294,7 @@ def _render_items(data: list[dict], source_filter: Optional[str] = None):
         snippet = _strip_html(row.get("snippet", "") or "")
         publisher = row.get("publisher", "") or ""
         published = _to_bht(row.get("published_at"))
+        url = _safe_url(row.get("url", ""))
 
         with st.expander(f"{badges}  **{title[:100]}**  `{score:+.0f}pts`"):
             # Snippet as main content
@@ -304,6 +305,8 @@ def _render_items(data: list[dict], source_filter: Optional[str] = None):
             st.caption(f"**{publisher}** · Published: {published}")
             if cats:
                 st.caption(f"Categories: {', '.join(cats)}")
+            if url:
+                st.markdown(f"🔗 [Read article]({url})")
 
 
 with tab_all:
