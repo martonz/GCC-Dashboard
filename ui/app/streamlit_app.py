@@ -122,7 +122,9 @@ st.caption(f"Last updated: {_to_bht(datetime.now(timezone.utc))}")
 # Fetch data
 latest_risk = _get("/risk/latest")
 risk_series = _get("/risk/series", {"hours": 12}) or []
-items_data = _get("/items", {"limit": 200}) or []
+rss_data = _get("/items", {"limit": 200, "source_type": "rss"}) or []
+gdelt_data = _get("/items", {"limit": 200, "source_type": "gdelt"}) or []
+items_data = rss_data + gdelt_data
 alerts_data = _get("/alerts", {"limit": 10}) or []
 
 # ── Risk Gauge ────────────────────────────────────────────────────────────────
@@ -258,7 +260,7 @@ def _render_items(data: list[dict], source_filter: Optional[str] = None):
     )
     hours_back = st.slider(
         "Show last N hours",
-        1, 24, 6,
+        1, 24, 24,
         key=f"hrs_{source_filter or 'all'}",
     )
 
@@ -270,7 +272,8 @@ def _render_items(data: list[dict], source_filter: Optional[str] = None):
     if pub_filter:
         df = df[df["publisher"].isin(pub_filter)]
 
-    # Filter by published_at when available, else fetched_at
+    # Filter by published_at when available, else fetched_at.
+    # (GDELT items with stale seendate have published_at=None so fetched_at is used.)
     cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours_back)
     if "published_at" in df.columns:
         df["published_at_ts"] = pd.to_datetime(df["published_at"], utc=True, errors="coerce")
@@ -313,12 +316,10 @@ with tab_all:
     _render_items(items_data)
 
 with tab_rss:
-    rss_items = [i for i in items_data if i.get("source_type") == "rss"]
-    _render_items(rss_items, source_filter="rss")
+    _render_items(rss_data, source_filter="rss")
 
 with tab_gdelt:
-    gdelt_items = [i for i in items_data if i.get("source_type") == "gdelt"]
-    _render_items(gdelt_items, source_filter="gdelt")
+    _render_items(gdelt_data, source_filter="gdelt")
 
 with tab_youtube:
     st.subheader("📺 Live News Streams")
