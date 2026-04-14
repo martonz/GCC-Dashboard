@@ -186,10 +186,13 @@ if latest_risk and latest_risk.get("drivers_json"):
         snippet = _strip_html(d.get("snippet", "") or "")[:200]
         published = _to_bht(d.get("published_at"))
         badge = " ".join(_category_badge(c) for c in cats)
+        url = _safe_url(d.get("url", ""))
         st.markdown(f"**{i}.** {title[:100]}")
         if snippet:
             st.caption(snippet)
         st.caption(f"{publisher} · {published} · {badge}")
+        if url:
+            st.markdown(f"🔗 [Read article]({url})")
         st.divider()
 
 st.divider()

@@ -23,6 +23,7 @@ GDELT_DOC_BASE = (
     "&format=json"
     "&maxrecords={maxrecords}"
     "&sort=HybridRel"
+    "&timespan=3d"
 )
 
 _SESSION = requests.Session()
@@ -52,7 +53,7 @@ def fetch_gdelt(query: str, max_records: int = 100) -> Iterator[dict]:
     (rate-limit) and 5xx (server error) responses.
     """
     url = GDELT_DOC_BASE.format(
-        query=quote_plus(query),
+        query=quote_plus(f"{query} sourcelang:english"),
         maxrecords=min(max_records, 250),
     )
 
