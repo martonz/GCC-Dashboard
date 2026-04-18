@@ -17,6 +17,7 @@ class Item(Base):
     source_type = Column(String(32), nullable=False)   # rss | gdelt
     source_name = Column(String(256))
     url = Column(Text, nullable=True)
+    direct_url = Column(Text, nullable=True)
     url_hash = Column(String(64), unique=True, index=True, nullable=False)
     title = Column(Text)
     snippet = Column(Text)

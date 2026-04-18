@@ -15,6 +15,8 @@ from urllib.parse import quote_plus
 
 import feedparser
 
+from ..url_utils import resolve_google_news_url
+
 logger = logging.getLogger(__name__)
 
 GNEWS_RSS_BASE = (
@@ -101,10 +103,13 @@ def fetch_rss(query: str) -> Iterator[dict]:
             parts = article_url.split("?")
             article_url = parts[0] + "?" + "oc=5"
 
+        direct_url = resolve_google_news_url(article_url)
+
         yield {
             "source_type": "rss",
             "source_name": query,
             "url": article_url,
+            "direct_url": direct_url or article_url,
             "title": entry.get("title", ""),
             "snippet": normalize_rss_snippet(
                 entry.get("summary", ""),

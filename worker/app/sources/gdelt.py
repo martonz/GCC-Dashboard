@@ -162,6 +162,7 @@ def fetch_gdelt(query: str, max_records: int = 100) -> Iterator[dict]:
             "source_type": "gdelt",
             "source_name": query,
             "url": art.get("url"),
+            "direct_url": art.get("url"),
             "title": art.get("title", ""),
             "snippet": art.get("seendesc", "") or art.get("socialimage", ""),
             "publisher": art.get("domain", ""),

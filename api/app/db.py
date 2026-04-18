@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 from .settings import get_settings
@@ -29,3 +29,6 @@ def get_db():
 def init_db():
     from . import models  # noqa: F401 – registers mappings
     Base.metadata.create_all(bind=engine)
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS direct_url TEXT"))

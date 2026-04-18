@@ -112,6 +112,35 @@ Check GDELT items are reaching API:
 curl -s "http://localhost:8000/items?source_type=gdelt&limit=5" | jq 'length'
 ```
 
+## Print .env Variables Used by Docker
+
+Show resolved environment variables per service from the rendered Docker Compose config:
+
+```bash
+docker compose config --format json | python3 -c "
+import json, sys
+cfg = json.load(sys.stdin)
+for svc, val in cfg.get('services', {}).items():
+	env = val.get('environment', {})
+	if env:
+		print(f'--- {svc} ---')
+		for k, v in env.items():
+			print(f'  {k}={v}')
+"
+```
+
+Show a service's runtime environment (example: worker):
+
+```bash
+docker compose run --rm worker env
+```
+
+Show fully resolved compose file with all substitutions:
+
+```bash
+docker compose convert
+```
+
 ## Trigger Risk Compute Manually
 
 ```bash

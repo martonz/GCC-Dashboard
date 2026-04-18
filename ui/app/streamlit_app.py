@@ -260,7 +260,7 @@ def _render_risk_why():
             title = d.get("title", "Unknown") or "Unknown"
             cats = d.get("categories", [])
             publisher = d.get("publisher", "") or d.get("source_name", "")
-            url = _safe_url(d.get("url", ""))
+            url = _safe_url(d.get("direct_url") or d.get("url", ""))
             badge = " ".join(_category_badge(c) for c in cats)
             safe_title = _escape_md(title[:90])
             link = f"[{safe_title}]({url})" if url else safe_title
@@ -378,7 +378,7 @@ def _render_items(
         badges = " ".join(_category_badge(c) for c in cats)
         score = row.get("risk_score", 0)
         title = row.get("title", "No title") or "No title"
-        url = row.get("url", "")
+        url = row.get("direct_url") or row.get("url", "")
         publisher = row.get("publisher", "") or ""
         snippet = _clean_snippet(row.get("snippet", ""), publisher)
         time_field = "published_at" if selected_time_basis == "published" else "fetched_at"
@@ -468,7 +468,7 @@ with tab_alerts:
                     st.markdown("**Drivers:**")
                     for d in drivers[:3]:
                         title = d.get("title", "") or ""
-                        url = _safe_url(d.get("url", ""))
+                        url = _safe_url(d.get("direct_url") or d.get("url", ""))
                         pub = d.get("publisher", "")
                         safe_title = _escape_md(title[:80])
                         link = f"[{safe_title}]({url})" if url else safe_title

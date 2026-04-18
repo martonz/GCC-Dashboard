@@ -50,6 +50,7 @@ class ItemOut(BaseModel):
     source_type: str
     source_name: Optional[str]
     url: Optional[str]
+    direct_url: Optional[str]
     title: Optional[str]
     snippet: Optional[str]
     publisher: Optional[str]

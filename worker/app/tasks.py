@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .celery_app import app
@@ -53,12 +54,13 @@ def _save_items(raw_items: list[dict]) -> int:
             )
             score = item_risk_score(categories)
 
-            stmt = (
+            insert_stmt = (
                 pg_insert(Item)
                 .values(
                     source_type=raw["source_type"],
                     source_name=raw.get("source_name", ""),
                     url=raw.get("url"),
+                    direct_url=raw.get("direct_url") or raw.get("url"),
                     url_hash=url_hash,
                     title=raw.get("title", ""),
                     snippet=raw.get("snippet", ""),
@@ -68,7 +70,13 @@ def _save_items(raw_items: list[dict]) -> int:
                     categories=categories,
                     risk_score=score,
                 )
-                .on_conflict_do_nothing(index_elements=["url_hash"])
+            )
+            stmt = insert_stmt.on_conflict_do_update(
+                index_elements=["url_hash"],
+                set_={
+                    "direct_url": func.coalesce(Item.direct_url, insert_stmt.excluded.direct_url),
+                },
+                where=Item.direct_url.is_(None),
             )
             result = db.execute(stmt)
             saved += result.rowcount
@@ -156,6 +164,7 @@ def compute_risk(self):
                     "title": item.title,
                     "publisher": item.publisher,
                     "url": item.url,
+                    "direct_url": item.direct_url or item.url,
                     "categories": cats,
                     "risk_score": item.risk_score,
                     "source_name": item.source_name,
