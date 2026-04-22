@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     alert_risk_threshold: int = 70
     alert_delta_threshold: int = 20
     alert_kinetic_hits: int = 3
+    alert_kinetic_min_risk: int = 1
     alert_cooldown_minutes: int = 30
 
     # RSS

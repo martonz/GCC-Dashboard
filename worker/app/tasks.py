@@ -236,8 +236,12 @@ def _evaluate_alerts(
             drivers=drivers,
         )
 
-    # 3) Kinetic cluster – 3+ hits from distinct domains
-    if kinetic_hits >= settings.alert_kinetic_hits and distinct_kinetic_domains >= 3:
+    # 3) Kinetic cluster – 3+ hits from distinct domains, only when net risk is positive
+    if (
+        risk_index >= settings.alert_kinetic_min_risk
+        and kinetic_hits >= settings.alert_kinetic_hits
+        and distinct_kinetic_domains >= 3
+    ):
         maybe_send_alert(
             db,
             alert_type="kinetic_cluster",

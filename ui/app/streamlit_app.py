@@ -363,7 +363,7 @@ def _render_items(
             pub_options = sorted(df["publisher"].dropna().unique().tolist())
             pub_filter = st.multiselect("Publisher", pub_options[:20], key=f"pub_{source_filter or 'all'}")
 
-    # Apply filters
+# Apply filters
     if source_filter:
         df = df[df["source_type"] == source_filter]
     if cat_filter:
