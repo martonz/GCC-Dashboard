@@ -132,10 +132,6 @@ def _clean_snippet(value: Any, publisher: str = "") -> str:
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Flag_of_the_United_States_%28Pantone%29.svg/320px-Flag_of_the_United_States_%28Pantone%29.svg.png",
-        width=60,
-    )
     st.title("GCC Dashboard")
     st.caption("U.S.–Iran Conflict Risk Monitor")
     st.divider()
@@ -385,7 +381,8 @@ def _render_items(
         time_label = "Published" if selected_time_basis == "published" else "Fetched"
         item_time = _format_bahrain_time(row.get(time_field, ""))
 
-        with st.expander(f"{badges}  **{title[:100]}**  `{score:+.0f}pts`"):
+        with st.expander(f"**{title[:110]}**  `{score:+.0f}pts`"):
+            st.caption(f"Categories: {badges if badges else '⚪ none'}")
             if compact:
                 if snippet:
                     st.caption(snippet[:600])
@@ -393,7 +390,6 @@ def _render_items(
                     st.markdown(f"🔗 [Read article]({url})")
                 st.caption(f"**Source:** {publisher}")
                 st.caption(f"**{time_label}:** {item_time}")
-                st.caption(f"**Categories:** {', '.join(cats) if cats else 'none'}")
             else:
                 cols = st.columns([2, 1])
                 with cols[0]:
@@ -405,7 +401,6 @@ def _render_items(
                 with cols[1]:
                     st.caption(f"**Source:** {publisher}")
                     st.caption(f"**{time_label}:** {item_time}")
-                    st.caption(f"**Categories:** {', '.join(cats) if cats else 'none'}")
 
 
 with tab_all:
