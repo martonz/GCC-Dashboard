@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, literal_column
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .celery_app import app
@@ -77,9 +77,9 @@ def _save_items(raw_items: list[dict]) -> int:
                     "direct_url": func.coalesce(Item.direct_url, insert_stmt.excluded.direct_url),
                 },
                 where=Item.direct_url.is_(None),
-            )
+            ).returning(literal_column("xmax"))
             result = db.execute(stmt)
-            saved += result.rowcount
+            saved += sum(1 for row in result if row[0] == 0)
 
         db.commit()
     except Exception:
