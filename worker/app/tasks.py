@@ -175,6 +175,9 @@ def compute_risk(self):
         # Top 3 drivers by risk_score desc
         top_items.sort(key=lambda x: x["risk_score"], reverse=True)
         drivers = top_items[:3]
+        kinetic_drivers = [
+            d for d in top_items if "kinetic" in d.get("categories", [])
+        ][:3]
 
         ts = RiskTimeseries(
             timestamp=datetime.now(timezone.utc),
@@ -197,7 +200,7 @@ def compute_risk(self):
         )
 
         # ── Alert evaluation ───────────────────────────────────────────────────
-        _evaluate_alerts(db, risk_index, kinetic, len(domains_kinetic), drivers)
+        _evaluate_alerts(db, risk_index, kinetic, len(domains_kinetic), drivers, kinetic_drivers)
 
         return {"risk_index": risk_index, "item_count": len(items)}
     except Exception:
@@ -213,38 +216,48 @@ def _evaluate_alerts(
     kinetic_hits: int,
     distinct_kinetic_domains: int,
     drivers: list[dict],
+    kinetic_drivers: list[dict],
 ):
-    """Check alert conditions and dispatch Discord notifications if needed."""
-    # 1) Risk threshold
-    if risk_index >= settings.alert_risk_threshold:
-        maybe_send_alert(
-            db,
-            alert_type="risk_threshold",
-            risk_value=risk_index,
-            risk_delta=_compute_delta(db, risk_index),
-            drivers=drivers,
-        )
+    """Check alert conditions and dispatch at most one Discord notification per cycle.
 
-    # 2) Delta spike – compare with 30 minutes ago
+    Priority (highest first): kinetic_cluster → delta_spike → risk_threshold.
+    Once one alert fires, the rest are skipped for this cycle.
+    """
+    # Compute delta once — shared across all condition checks.
     delta = _compute_delta(db, risk_index)
-    if delta >= settings.alert_delta_threshold:
-        maybe_send_alert(
-            db,
-            alert_type="delta_spike",
-            risk_value=risk_index,
-            risk_delta=delta,
-            drivers=drivers,
-        )
 
-    # 3) Kinetic cluster – 3+ hits from distinct domains, only when net risk is positive
+    # 1) Kinetic cluster – most specific; use kinetic-filtered drivers
     if (
         risk_index >= settings.alert_kinetic_min_risk
         and kinetic_hits >= settings.alert_kinetic_hits
         and distinct_kinetic_domains >= 3
     ):
-        maybe_send_alert(
+        kd = kinetic_drivers if kinetic_drivers else drivers
+        if maybe_send_alert(
             db,
             alert_type="kinetic_cluster",
+            risk_value=risk_index,
+            risk_delta=delta,
+            drivers=kd,
+        ):
+            return
+
+    # 2) Delta spike
+    if delta >= settings.alert_delta_threshold:
+        if maybe_send_alert(
+            db,
+            alert_type="delta_spike",
+            risk_value=risk_index,
+            risk_delta=delta,
+            drivers=drivers,
+        ):
+            return
+
+    # 3) Risk threshold – most generic
+    if risk_index >= settings.alert_risk_threshold:
+        maybe_send_alert(
+            db,
+            alert_type="risk_threshold",
             risk_value=risk_index,
             risk_delta=delta,
             drivers=drivers,
