@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import requests
 
@@ -15,6 +15,21 @@ def safe_http_url(url: str | None) -> str:
     if not url:
         return ""
     return url if url.startswith(("https://", "http://")) else ""
+
+
+def _extract_consent_continue_url(url: str) -> str | None:
+    """If the URL is a consent.google.com redirect, extract the continue= target URL."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+    if (parsed.netloc or "").lower() != "consent.google.com":
+        return None
+    qs = parse_qs(parsed.query)
+    continue_urls = qs.get("continue")
+    if continue_urls:
+        return continue_urls[0]
+    return None
 
 
 def is_google_news_redirect(url: str) -> bool:
@@ -32,14 +47,25 @@ def resolve_google_news_url(url: str) -> str:
     safe = safe_http_url(url)
     if not safe:
         return ""
+
+    # If the URL already points to a consent page, extract the real target.
+    real_url = _extract_consent_continue_url(safe)
+    if real_url:
+        return safe_http_url(real_url) or ""
+
     if not is_google_news_redirect(safe):
         return safe
 
     try:
         resp = _URL_RESOLVE_SESSION.get(safe, allow_redirects=True, timeout=6)
         resolved = safe_http_url(resp.url)
-        if resolved and not is_google_news_redirect(resolved):
-            return resolved
+        if resolved:
+            # The final redirect may still be a consent page; extract the real URL.
+            real_url = _extract_consent_continue_url(resolved)
+            if real_url:
+                return safe_http_url(real_url) or ""
+            if not is_google_news_redirect(resolved):
+                return resolved
     except requests.RequestException:
         pass
 
